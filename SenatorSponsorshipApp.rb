@@ -1,12 +1,24 @@
 class SenatorSponsorshipApp
-  def initialize(key)
+  # Reads the API key from file.
+  private def read_key_from_file(filename)
+    key_file = File.open(filename)
+    key = key_file.each.next
+    key_file.close
+    key
+  end
+
+  # key_file: name of the file that contains the API key.
+  # states_csv: name of a .csv file of state names and abbreviations.
+  def initialize(key_file, states_csv)
     @builder = NYTRequestBuilder.new(
       category: 'politics',
       version:  3,
       append:   'us/legislative/congress',
-      key:      key.dup,
+      key:      read_key_from_file(key_file),
       limit:    [2, 1]
     )
+    @states = States.new(states_csv)
+    @senators = Senators.new(@builder, @states)
   end
 
   private def about
@@ -25,8 +37,15 @@ class SenatorSponsorshipApp
         UserChoice.new(:by_name,  'By name'),
         UserChoice.new(:by_state, 'By state')
       ]).solicit.value
-    puts method
-    Senators.new(@builder).all.first
+    lookup = case method
+    when :by_name
+      SenatorLookupByName.new(@senators)
+    when :by_state
+      SenatorLookupByState.new(@senators, @states)
+    else
+      raise 'unreachable code'
+    end
+    lookup.lookup
   end
 
   def run
