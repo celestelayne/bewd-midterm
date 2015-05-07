@@ -19,8 +19,19 @@ class SenatorSponsorshipApp
     puts
   end
 
+  private def get_senator
+    puts 'How would you like to select a senator?'
+    method = ChoiceSolicitor.new([
+        UserChoice.new(:by_name,  'By name'),
+        UserChoice.new(:by_state, 'By state')
+      ]).solicit.value
+    puts method
+    Senators.new(@builder).all.first
+  end
+
   def run
     about
-    Senators.new(@builder).all.each { |senator| puts senator.name.full }
+    senator = get_senator
+    puts senator.name.full
   end
 end
