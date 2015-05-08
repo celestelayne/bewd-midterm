@@ -48,9 +48,40 @@ class SenatorSponsorshipApp
     lookup.lookup
   end
 
+  private def get_bill_solicitor(bills, number_to_show)
+    choices = []
+    i = 0
+    sorted = bills.all.sort_by { |bill| -bill.cosponsored_date.to_time.to_i }
+    sorted.each do |bill|
+      break if (i += 1) > number_to_show
+      # Some but not all bill titles end in a period.
+      period = bill.title =~ /\.$/ ? '' : '.'
+      date = bill.cosponsored_date.strftime('%-m/%-d/%Y')
+      label = "#{bill.number}: #{bill.title}#{period} (Cosponsored on #{date}.)"
+      choices << UserChoice.new(bill, label)
+    end
+    ChoiceSolicitor.new(choices)
+  end
+
+  private def get_bill(senator, solicitor)
+    puts "Below are some of Senator #{senator.name.last}'s recently cosponsored"
+    puts "bills."
+    puts
+    puts "Choose one to learn more."
+    puts
+    solicitor.solicit.value
+  end
+
   def run
     about
     senator = get_senator
-    puts senator.name.full
+    bills = CosponsoredBills.new(senator, @builder)
+    if bills.all.size == 0
+      puts 'That senator has no recently cosponsored bills. :('
+    else
+      solicitor = get_bill_solicitor(bills, 10)
+      bill = get_bill(senator, solicitor)
+      puts bill.title
+    end
   end
 end
