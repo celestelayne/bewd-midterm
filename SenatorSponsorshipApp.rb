@@ -24,6 +24,7 @@ class SenatorSponsorshipApp
     @senators = Senators.new(@builder, @states)
   end
 
+  # Describes the app.
   private def about
     puts
     puts "Welcome to the Senator Sponsorship App!"
@@ -34,6 +35,7 @@ class SenatorSponsorshipApp
     puts
   end
 
+  # Asks the user to select a senator.
   private def get_senator
     puts 'How would you like to select the senator?'
     method = ChoiceSolicitor.new([
@@ -55,6 +57,7 @@ class SenatorSponsorshipApp
     date.strftime('%-m/%-d/%Y')
   end
 
+  # Returns a ChoiceSolicitor of bills that the user may describe further.
   private def get_bill_solicitor(bills, number_to_show)
     choices = []
     i = 0
@@ -71,6 +74,7 @@ class SenatorSponsorshipApp
     ChoiceSolicitor.new(choices)
   end
 
+  # Asks the user to select a bill to learn more about.
   private def get_bill_choice(solicitor, senator)
     puts "Below are some of Senator #{senator.name.last}'s recently cosponsored"
     puts "bills."
@@ -80,6 +84,7 @@ class SenatorSponsorshipApp
     solicitor.solicit.value
   end
 
+  # Describes a bill in detail.
   private def describe_bill(bill)
     json = @builder.request(bill.api_url).json['results'].first
     descriptive = DescriptiveBill.new(json)
