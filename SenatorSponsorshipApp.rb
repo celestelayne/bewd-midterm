@@ -35,7 +35,7 @@ class SenatorSponsorshipApp
   end
 
   private def get_senator
-    puts 'How would you like to select a senator?'
+    puts 'How would you like to select the senator?'
     method = ChoiceSolicitor.new([
         UserChoice.new(:by_name,  'By name'),
         UserChoice.new(:by_state, 'By state')
