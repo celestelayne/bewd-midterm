@@ -4,7 +4,7 @@ class NYTRequestBuilder
   # @version: the API version.
   # @append (optional): path elements to append to the base request URL.
   # @base: the base request URL:
-  #   http://api.nytimes.com/svc/@category/v@version/@append
+  #   http://api.nytimes.com/svc/@category/v@version/@append/
   # @key: the API key.
   # @limit: the API rate limit as an array:
   #   [number_of_calls, timeframe_in_seconds]. For instance, [2, 1] means
@@ -24,12 +24,12 @@ class NYTRequestBuilder
 
     if @append = options[:append]
       @append = append.dup
-      append.sub!(/\/$/, '')
+      append << '/' unless append =~ /\/$/
       append.freeze
     end
 
-    @base = "http://api.nytimes.com/svc/#{category}/v#{version}"
-    base << "/#{append}" if append
+    @base = "http://api.nytimes.com/svc/#{category}/v#{version}/"
+    base << append if append
     base.freeze
 
     @limiter = GluttonRatelimit::BurstyTokenBucket.new(limit[0], limit[1])
@@ -37,10 +37,13 @@ class NYTRequestBuilder
 
   # url: the remainder of the request URL after the base URL.
   def request(url)
+    # Allow the user to specify the full URL.
+    remainder = url[0, base.length] == base ? url.sub(base, '') : url
+
     request = nil
-    delim = url.include?('?') ? '&' : '?'
+    delim = remainder.include?('?') ? '&' : '?'
     @limiter.times 1 do
-      request = NYTResponse.new("#{base}/#{url}#{delim}api-key=#{key}")
+      request = NYTResponse.new("#{base}#{remainder}#{delim}api-key=#{key}")
     end
     request
   end

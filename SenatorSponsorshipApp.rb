@@ -1,4 +1,7 @@
 class SenatorSponsorshipApp
+  EXIT = :exit
+  private_constant :EXIT
+
   # Reads the API key from file.
   private def read_key_from_file(filename)
     key_file = File.open(filename)
@@ -48,6 +51,10 @@ class SenatorSponsorshipApp
     lookup.lookup
   end
 
+  private def date_string(date)
+    date.strftime('%-m/%-d/%Y')
+  end
+
   private def get_bill_solicitor(bills, number_to_show)
     choices = []
     i = 0
@@ -56,14 +63,15 @@ class SenatorSponsorshipApp
       break if (i += 1) > number_to_show
       # Some but not all bill titles end in a period.
       period = bill.title =~ /\.$/ ? '' : '.'
-      date = bill.cosponsored_date.strftime('%-m/%-d/%Y')
+      date = date_string(bill.cosponsored_date)
       label = "#{bill.number}: #{bill.title}#{period} (Cosponsored on #{date}.)"
       choices << UserChoice.new(bill, label)
     end
+    choices << UserChoice.new(EXIT, 'EXIT APP')
     ChoiceSolicitor.new(choices)
   end
 
-  private def get_bill(senator, solicitor)
+  private def get_bill_choice(solicitor, senator)
     puts "Below are some of Senator #{senator.name.last}'s recently cosponsored"
     puts "bills."
     puts
@@ -72,16 +80,44 @@ class SenatorSponsorshipApp
     solicitor.solicit.value
   end
 
+  private def describe_bill(bill)
+    json = @builder.request(bill.api_url).json['results'].first
+    descriptive = DescriptiveBill.new(json)
+
+    puts "#{descriptive.number}: #{descriptive.title}"
+    puts "Number of cosponsors: #{descriptive.num_cosponsors}"
+    puts
+    date = date_string(descriptive.latest_major_action.datetime)
+    puts "Latest major action (#{date}):"
+    puts descriptive.latest_major_action.description
+    puts
+    puts "PDF URL:"
+    puts descriptive.gpo_pdf
+    puts
+    puts 'Press enter to continue.'
+    gets.chomp
+  end
+
+  private def farewell
+    puts 'Come again!'
+    puts
+  end
+
   def run
     about
+
     senator = get_senator
     bills = CosponsoredBills.new(senator, @builder)
     if bills.all.size == 0
       puts 'That senator has no recently cosponsored bills. :('
+      puts
     else
       solicitor = get_bill_solicitor(bills, 10)
-      bill = get_bill(senator, solicitor)
-      puts bill.title
+      until (choice = get_bill_choice(solicitor, senator)) == EXIT
+        describe_bill choice
+      end
     end
+
+    farewell
   end
 end
